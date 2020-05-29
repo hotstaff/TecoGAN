@@ -8,20 +8,23 @@ runcase == 3    training TecoGAN
 runcase == 4    training FRVSR
 runcase == ...  coming... data preparation and so on...
 '''
-import os, subprocess, sys, datetime, signal, shutil
+import os
+import subprocess
+import sys
+import datetime
+import signal shutil
 
 runcase = int(sys.argv[1])
-print ("Testing test case %d" % runcase)
+print("Testing test case %d" % runcase)
 
 def preexec(): # Don't forward signals.
     os.setpgrp()
-    
+
 def mycall(cmd, block=False):
     if not block:
         return subprocess.Popen(cmd)
-    else:
-        return subprocess.Popen(cmd, preexec_fn = preexec)
-    
+    return subprocess.Popen(cmd, preexec_fn=preexec)
+
 def folder_check(path):
     try_num = 1
     oripath = path[:-1] if path.endswith('/') else path
@@ -35,61 +38,64 @@ def folder_check(path):
             path = oripath + "_%d/"%try_num
             try_num += 1
             print(path)
-    
+
     return path
 
-if( runcase == 0 ): # download inference data, trained models
+if runcase == 0: # download inference data, trained models
     # download the trained model
-    if(not os.path.exists("./model/")): os.mkdir("./model/")
+    if not os.path.exists("./model/"):
+        os.mkdir("./model/")
     cmd1 = "wget https://ge.in.tum.de/download/data/TecoGAN/model.zip -O model/model.zip;"
     cmd1 += "unzip model/model.zip -d model; rm model/model.zip"
     subprocess.call(cmd1, shell=True)
-    
+
     # download some test data
     cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid3_LR.zip -O LR/vid3.zip;"
     cmd2 += "unzip LR/vid3.zip -d LR; rm LR/vid3.zip"
     subprocess.call(cmd2, shell=True)
-    
+
     cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_LR.zip -O LR/tos.zip;"
     cmd2 += "unzip LR/tos.zip -d LR; rm LR/tos.zip"
     subprocess.call(cmd2, shell=True)
-    
+
     # download the ground-truth data
-    if(not os.path.exists("./HR/")): os.mkdir("./HR/")
+    if not os.path.exists("./HR/"):
+        os.mkdir("./HR/")
     cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid4_HR.zip -O HR/vid4.zip;"
     cmd3 += "unzip HR/vid4.zip -d HR; rm HR/vid4.zip"
     subprocess.call(cmd3, shell=True)
-    
+
     cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_HR.zip -O HR/tos.zip;"
     cmd3 += "unzip HR/tos.zip -d HR; rm HR/tos.zip"
     subprocess.call(cmd3, shell=True)
-    
-elif( runcase == 1 ): # inference a trained model
-    
+
+elif runcase == 1: # inference a trained model
     dirstr = './results/' # the place to save the results
     testpre = ['calendar'] # the test cases
 
-    if (not os.path.exists(dirstr)): os.mkdir(dirstr)
-    
+    if not os.path.exists(dirstr):
+        os.mkdir(dirstr)
+
     # run these test cases one by one:
-    for nn in range(len(testpre)):
-        cmd1 = ["python3", "main.py",
+    for case in testpre:
+        cmd1 = [
+            "python3", "main.py",
             "--cudaID", "0",            # set the cudaID here to use only one GPU
-            "--output_dir",  dirstr,    # Set the place to put the results.
-            "--summary_dir", os.path.join(dirstr, 'log/'), # Set the place to put the log. 
-            "--mode","inference", 
-            "--input_dir_LR", os.path.join("./LR/", testpre[nn]),   # the LR directory
+            "--output_dir", dirstr,     # Set the place to put the results.
+            "--summary_dir", os.path.join(dirstr, 'log/'), # Set the place to put the log.
+            "--mode", "inference",
+            "--input_dir_LR", os.path.join("./LR/", case),  # the LR directory
             #"--input_dir_HR", os.path.join("./HR/", testpre[nn]),  # the HR directory
             # one of (input_dir_HR,input_dir_LR) should be given
-            "--output_pre", testpre[nn], # the subfolder to save current scene, optional
-            "--num_resblock", "16",  # our model has 16 residual blocks, 
+            "--output_pre", case, # the subfolder to save current scene, optional
+            "--num_resblock", "16",  # our model has 16 residual blocks,
             # the pre-trained FRVSR and TecoGAN mini have 10 residual blocks
             "--checkpoint", './model/TecoGAN',  # the path of the trained model,
-            "--output_ext", "png"               # png is more accurate, jpg is smaller
+            "--output_ext", "png",               # png is more accurate, jpg is smaller
         ]
         mycall(cmd1).communicate()
 
-elif( runcase == 2 ): # calculate all metrics, and save the csv files, should use png
+elif runcase == 2: # calculate all metrics, and save the csv files, should use png
 
     testpre = ["calendar"] # just put more scenes to evaluate all of them
     dirstr = './results/'  # the outputs
@@ -98,60 +104,62 @@ elif( runcase == 2 ): # calculate all metrics, and save the csv files, should us
     tar_list = [(tarstr+_) for _ in testpre]
     out_list = [(dirstr+_) for _ in testpre]
     cmd1 = ["python3", "metrics.py",
-        "--output", dirstr+"metric_log/",
-        "--results", ",".join(out_list),
-        "--targets", ",".join(tar_list),
-    ]
+            "--output", dirstr+"metric_log/",
+            "--results", ",".join(out_list),
+            "--targets", ",".join(tar_list),
+            ]
     mycall(cmd1).communicate()
-    
-elif( runcase == 3 ): # Train TecoGAN
+
+elif runcase == 3: # Train TecoGAN
     '''
     In order to use the VGG as a perceptual loss,
     we download from TensorFlow-Slim image classification model library:
-    https://github.com/tensorflow/models/tree/master/research/slim    
+    https://github.com/tensorflow/models/tree/master/research/slim
     '''
     VGGPath = "model/" # the path for the VGG model, there should be a vgg_19.ckpt inside
     VGGModelPath = os.path.join(VGGPath, "vgg_19.ckpt")
-    if(not os.path.exists(VGGPath)): os.mkdir(VGGPath)
-    if(not os.path.exists(VGGModelPath)):
-        # Download the VGG 19 model from 
+    if not os.path.exists(VGGPath):
+        os.mkdir(VGGPath)
+    if not os.path.exists(VGGModelPath):
+        # Download the VGG 19 model from
         print("VGG model not found, downloading to %s"%VGGPath)
         cmd0 = "wget http://download.tensorflow.org/models/vgg_19_2016_08_28.tar.gz -O " + os.path.join(VGGPath, "vgg19.tar.gz")
-        cmd0 += ";tar -xvf " + os.path.join(VGGPath,"vgg19.tar.gz") + " -C " + VGGPath + "; rm "+ os.path.join(VGGPath, "vgg19.tar.gz")
+        cmd0 += ";tar -xvf " + os.path.join(VGGPath, "vgg19.tar.gz") + " -C " + VGGPath + "; rm "+ os.path.join(VGGPath, "vgg19.tar.gz")
         subprocess.call(cmd0, shell=True)
-        
+
     '''
     Use our pre-trained FRVSR model. If you want to train one, try runcase 4, and update this path by:
     FRVSRModel = "ex_FRVSRmm-dd-hh/model-500000"
     '''
-    FRVSRModel = "model/ourFRVSR" 
-    if(not os.path.exists(FRVSRModel+".data-00000-of-00001")):
+    FRVSRModel = "model/ourFRVSR"
+    if not os.path.exists(FRVSRModel+".data-00000-of-00001"):
         # Download our pre-trained FRVSR model
         print("pre-trained FRVSR model not found, downloading")
         cmd0 = "wget http://ge.in.tum.de/download/2019-TecoGAN/FRVSR_Ours.zip -O model/ofrvsr.zip;"
         cmd0 += "unzip model/ofrvsr.zip -d model; rm model/ofrvsr.zip"
         subprocess.call(cmd0, shell=True)
-    
-    TrainingDataPath = "/mnt/netdisk/video_data/" 
-    
+
+    TrainingDataPath = "/mnt/netdisk/video_data/"
+
     '''Prepare Training Folder'''
     # path appendix, manually define it, or use the current datetime, now_str = "mm-dd-hh"
     now_str = datetime.datetime.now().strftime("%m-%d-%H")
     train_dir = folder_check("ex_TecoGAN%s/"%now_str)
     # train TecoGAN, loss = l2 + VGG54 loss + A spatio-temporal Discriminator
-    cmd1 = ["python3", "main.py",
+    cmd1 = [
+        "python3", "main.py",
         "--cudaID", "0", # set the cudaID here to use only one GPU
         "--output_dir", train_dir, # Set the place to save the models.
-        "--summary_dir", os.path.join(train_dir,"log/"), # Set the place to save the log. 
-        "--mode","train",
-        "--batch_size", "4" , # small, because GPU memory is not big
-        "--RNN_N", "10" , # train with a sequence of RNN_N frames, >6 is better, >10 is not necessary
+        "--summary_dir", os.path.join(train_dir, "log/"), # Set the place to save the log.
+        "--mode", "train",
+        "--batch_size", "4", # small, because GPU memory is not big
+        "--RNN_N", "10", # train with a sequence of RNN_N frames, >6 is better, >10 is not necessary
         "--movingFirstFrame", # a data augmentation
         "--random_crop",
         "--crop_size", "32",
         "--learning_rate", "0.00005",
         # -- learning_rate step decay, here it is not used --
-        "--decay_step", "500000", 
+        "--decay_step", "500000",
         "--decay_rate", "1.0", # 1.0 means no decay
         "--stair",
         "--beta", "0.9", # ADAM training parameter beta
@@ -175,7 +183,7 @@ elif( runcase == 3 ): # Train TecoGAN
     name_video_queue_capacity, video_queue_capacity: how much memory can be used
     '''
     cmd1 += [
-        "--input_video_dir", TrainingDataPath, 
+        "--input_video_dir", TrainingDataPath,
         "--input_video_pre", "scene",
         "--str_dir", "2000",
         "--end_dir", "2250",
@@ -189,11 +197,11 @@ elif( runcase == 3 ): # Train TecoGAN
     '''
     loading the pre-trained model from FRVSR can make the training faster
     --checkpoint, path of the model, here our pre-trained FRVSR is given
-    --pre_trained_model,  to continue an old (maybe accidentally stopeed) training, 
-        pre_trained_model should be false, and checkpoint should be the last model such as 
+    --pre_trained_model,  to continue an old (maybe accidentally stopeed) training,
+        pre_trained_model should be false, and checkpoint should be the last model such as
         ex_TecoGANmm-dd-hh/model-xxxxxxx
-        To start a new and different training, pre_trained_model is True. 
-        The difference here is 
+        To start a new and different training, pre_trained_model is True.
+        The difference here is
         whether to load the whole graph icluding ADAM training averages/momentums/ and so on
         or just load existing pre-trained weights.
     '''
@@ -201,65 +209,68 @@ elif( runcase == 3 ): # Train TecoGAN
         "--pre_trained_model", # True
         "--checkpoint", FRVSRModel,
     ]
-    
+
     # the following can be used to train TecoGAN continuously
-    # old_model = "model/ex_TecoGANmm-dd-hh/model-xxxxxxx" 
+    # old_model = "model/ex_TecoGANmm-dd-hh/model-xxxxxxx"
     # cmd1 += [ # Here we want to train continuously
     #     "--nopre_trained_model", # False
     #     "--checkpoint", old_model,
     # ]
-    
-    ''' parameters for GAN training '''
+
+    ''' parameters for GAN training
+    '''
     cmd1 += [
         "--ratio", "0.01",  # the ratio for the adversarial loss from the Discriminator to the Generator
         "--Dt_mergeDs",     # if Dt_mergeDs == False, only use temporal inputs, so we have a temporal Discriminator
                             # else, use both temporal and spatial inputs, then we have a Dst, the spatial and temporal Discriminator
     ]
     ''' if the generator is pre-trained, to fade in the discriminator is usually more stable.
-    the weight of the adversarial loss will be weighed with a weight, started from Dt_ratio_0, 
+    the weight of the adversarial loss will be weighed with a weight, started from Dt_ratio_0,
     and increases until Dt_ratio_max, the increased value is Dt_ratio_add per training step
-    For example, fading Dst in smoothly in the first 4k steps is 
+    For example, fading Dst in smoothly in the first 4k steps is
     "--Dt_ratio_max", "1.0", "--Dt_ratio_0", "0.0", "--Dt_ratio_add", "0.00025"
     '''
-    cmd1 += [ # here, the fading in is disabled 
+    cmd1 += [ # here, the fading in is disabled
         "--Dt_ratio_max", "1.0",
-        "--Dt_ratio_0", "1.0", 
-        "--Dt_ratio_add", "0.0", 
+        "--Dt_ratio_0", "1.0",
+        "--Dt_ratio_add", "0.0",
     ]
-    ''' Other Losses '''
+    ''' Other Losses
+    '''
     cmd1 += [
         "--pingpang",           # our Ping-Pang loss
         "--pp_scaling", "0.5",  # the weight of the our bi-directional loss, 0.0~0.5
         "--D_LAYERLOSS",        # use feature layer losses from the discriminator
     ]
-    
-    pid = mycall(cmd1, block=True) 
+
+    pid = mycall(cmd1, block=True)
     try: # catch interruption for training
         pid.communicate()
-    except KeyboardInterrupt: # Ctrl + C to stop current training try to save the last model 
+    except KeyboardInterrupt: # Ctrl + C to stop current training try to save the last model
         print("runGAN.py: sending SIGINT signal to the sub process...")
         pid.send_signal(signal.SIGINT)
-        # try to save the last model 
+        # try to save the last model
         pid.communicate()
         print("runGAN.py: finished...")
-        
-        
-elif( runcase == 4 ): # Train FRVSR, loss = l2 warp + l2 content
+
+
+elif runcase == 4: # Train FRVSR, loss = l2 warp + l2 content
     now_str = datetime.datetime.now().strftime("%m-%d-%H")
     train_dir = folder_check("ex_FRVSR%s/"%now_str)
-    cmd1 = ["python3", "main.py",
+    cmd1 = [
+        "python3", "main.py",
         "--cudaID", "0", # set the cudaID here to use only one GPU
         "--output_dir", train_dir, # Set the place to save the models.
-        "--summary_dir", os.path.join(train_dir,"log/"), # Set the place to save the log. 
-        "--mode","train",
-        "--batch_size", "4" , # small, because GPU memory is not big
-        "--RNN_N", "10" , # train with a sequence of RNN_N frames, >6 is better, >10 is not necessary
+        "--summary_dir", os.path.join(train_dir, "log/"), # Set the place to save the log.
+        "--mode", "train",
+        "--batch_size", "4", # small, because GPU memory is not big
+        "--RNN_N", "10", # train with a sequence of RNN_N frames, >6 is better, >10 is not necessary
         "--movingFirstFrame", # a data augmentation
         "--random_crop",
         "--crop_size", "32",
         "--learning_rate", "0.00005",
         # -- learning_rate step decay, here it is not used --
-        "--decay_step", "500000", 
+        "--decay_step", "500000",
         "--decay_rate", "1.0", # 1.0 means no decay
         "--stair",
         "--beta", "0.9", # ADAM training parameter beta
@@ -273,7 +284,7 @@ elif( runcase == 4 ): # Train FRVSR, loss = l2 warp + l2 content
     '''Video Training data... Same as runcase 3...'''
     TrainingDataPath = "/mnt/netdisk/video_data/"
     cmd1 += [
-        "--input_video_dir", TrainingDataPath, 
+        "--input_video_dir", TrainingDataPath,
         "--input_video_pre", "scene",
         "--str_dir", "2000",
         "--end_dir", "2250",
@@ -284,13 +295,13 @@ elif( runcase == 4 ): # Train FRVSR, loss = l2 warp + l2 content
         "--name_video_queue_capacity", "1024",
         "--video_queue_capacity", "1024",
     ]
-    
+
     pid = mycall(cmd1, block=True)
     try: # catch interruption for training
         pid.communicate()
-    except KeyboardInterrupt: # Ctrl + C to stop current training try to save the last model 
+    except KeyboardInterrupt: # Ctrl + C to stop current training try to save the last model
         print("runGAN.py: sending SIGINT signal to the sub process...")
         pid.send_signal(signal.SIGINT)
-        # try to save the last model 
+        # try to save the last model
         pid.communicate()
         print("runGAN.py: finished...")
