@@ -12,7 +12,8 @@ import os
 import subprocess
 import sys
 import datetime
-import signal shutil
+import signal
+import shutil
 
 runcase = int(sys.argv[1])
 print("Testing test case %d" % runcase)

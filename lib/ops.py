@@ -40,7 +40,7 @@ def conv2_tran(batch_input,
                use_bias=True,
                scope='conv'):
     # kernel: An integer specifying the width and height of the 2D convolution window
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
         if use_bias:
             return slim.conv2d_transpose(
                 batch_input,
@@ -70,7 +70,7 @@ def conv2(batch_input,
           use_bias=True,
           scope='conv'):
     # kernel: An integer specifying the width and height of the 2D convolution window
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
         if use_bias:
             return slim.conv2d(
                 batch_input,
@@ -100,7 +100,7 @@ def conv2_NCHW(batch_input,
                scope='conv_NCHW'):
     # Use NCWH to speed up the inference
     # kernel: list of 2 integer specifying the width and height of the 2D convolution window
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
         if use_bias:
             return slim.conv2d(
                 batch_input,
@@ -124,7 +124,7 @@ def conv2_NCHW(batch_input,
 
 # Define our tensorflow version PRelu
 def prelu_tf(inputs, name='Prelu'):
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         alphas = tf.get_variable('alpha', inputs.get_shape()[-1], initializer=tf.zeros_initializer(), \
             collections=[tf.GraphKeys.GLOBAL_VARIABLES, tf.GraphKeys.TRAINABLE_VARIABLES, tf.GraphKeys.MODEL_VARIABLES ],dtype=tf.float32)
     pos = tf.nn.relu(inputs)
@@ -192,11 +192,9 @@ def pixelShuffler(inputs, scale=2):
     return output
 
 
-def upscale_four(
-    inputs,
-    scope='upscale_four'
-):  # mimic the tensorflow bilinear-upscaling for a fix ratio of 4
-    with tf.variable_scope(scope):
+def upscale_four(inputs, scope='upscale_four'):
+    # mimic the tensorflow bilinear-upscaling for a fix ratio of 4
+    with tf.compat.v1.variable_scope(scope):
         size = tf.shape(inputs)
         b = size[0]
         h = size[1]
@@ -244,7 +242,7 @@ def bicubic_four(inputs, scope='bicubic_four'):
         **Parallel Catmull-Rom Spline Interpolation Algorithm for Image Zooming Based on CUDA*[Wu et. al.]**
     '''
 
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
         size = tf.shape(inputs)
         b = size[0]
         h = size[1]
@@ -406,7 +404,7 @@ def vgg_19(
   Returns:
     the last op containing the log predictions and end_points dict.
   """
-    with tf.variable_scope(scope, 'vgg_19', [inputs], reuse=reuse) as sc:
+    with tf.compat.v1.variable_scope(scope, 'vgg_19', [inputs], reuse=reuse) as sc:
         end_points_collection = sc.name + '_end_points'
         # Collect outputs for conv2d, fully_connected and max_pool2d.
         with slim.arg_scope(

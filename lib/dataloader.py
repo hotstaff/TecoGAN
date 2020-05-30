@@ -21,13 +21,13 @@ def inference_data_loader(FLAGS):
         filedir = FLAGS.input_dir_HR
         downSP = True
 
+    # first sort according to abc, then sort according to 123
     image_list_LR_temp = os.listdir(filedir)
     image_list_LR_temp = [_ for _ in image_list_LR_temp if _.endswith(".png")]
-    image_list_LR_temp = sorted(
-        image_list_LR_temp
-    )  # first sort according to abc, then sort according to 123
+    image_list_LR_temp = sorted(image_list_LR_temp)
     image_list_LR_temp.sort(
         key=lambda f: int(''.join(list(filter(str.isdigit, f))) or -1))
+
     if FLAGS.input_dir_len > 0:
         image_list_LR_temp = image_list_LR_temp[:FLAGS.input_dir_len]
 
@@ -201,9 +201,12 @@ def loadHR_batch(FLAGS, tar_size):
 
         print('Sequenced batches: {}, sequence length: {}'.format(
             num_image_list_HR_t_cur, FLAGS.RNN_N))
-        batch_list = tf.train.shuffle_batch(output_names + target_images, enqueue_many=True,\
-                        batch_size=int(FLAGS.batch_size), capacity=FLAGS.video_queue_capacity+FLAGS.video_queue_batch*sequence_length,
-                        min_after_dequeue=FLAGS.video_queue_capacity, num_threads=FLAGS.queue_thread, seed=FLAGS.rand_seed)
+        batch_list = tf.train.shuffle_batch(output_names + target_images, enqueue_many=True,
+                        batch_size=int(FLAGS.batch_size),
+                        capacity=FLAGS.video_queue_capacity+FLAGS.video_queue_batch*sequence_length,
+                        min_after_dequeue=FLAGS.video_queue_capacity,
+                        num_threads=FLAGS.queue_thread,
+                        seed=FLAGS.rand_seed)
 
     return batch_list, num_image_list_HR_t_cur  # a k_w_border margin is in there for gaussian blur
 
@@ -344,14 +347,12 @@ def loadHR(FLAGS, tar_size):
     return batch_list, num_image_list_HR_t_cur  # a k_w_border margin is still there for gaussian blur!!
 
 
-def frvsr_gpu_data_loader(
-    FLAGS, useValData_ph
-):  # useValData_ph, tf bool placeholder, whether to use validationdata
+def frvsr_gpu_data_loader(FLAGS, useValData_ph):
+    # useValData_ph, tf bool placeholder, whether to use validationdata
     Data = collections.namedtuple(
         'Data', 'paths_HR, s_inputs, s_targets, image_count, steps_per_epoch')
     tar_size = FLAGS.crop_size
-    tar_size = (FLAGS.crop_size * 4) + int(
-        1.5 * 3.0) * 2  # crop_size * 4, and Gaussian blur margin
+    tar_size = (FLAGS.crop_size * 4) + int(1.5 * 3.0) * 2  # crop_size * 4, and Gaussian blur margin
     k_w_border = int(1.5 * 3.0)
 
     loadHRfunc = loadHR if FLAGS.queue_thread > 4 else loadHR_batch
@@ -414,12 +415,8 @@ def frvsr_gpu_data_loader(
                 ])
 
             # for Ds, inputs_batch and targets_batch are just the input and output:
-            S_inputs_frames = tf.stack(
-                input_images,
-                axis=1)  # batch, frame, FLAGS.crop_size, FLAGS.crop_size, sn
-            S_targets_frames = tf.stack(
-                target_images, axis=1
-            )  # batch, frame, FLAGS.crop_size*4, FLAGS.crop_size*4, 3
+            S_inputs_frames = tf.stack(input_images, axis=1)  # batch, frame, FLAGS.crop_size, FLAGS.crop_size, sn
+            S_targets_frames = tf.stack(target_images, axis=1)  # batch, frame, FLAGS.crop_size*4, FLAGS.crop_size*4, 3
             S_inputs_frames.set_shape((FLAGS.batch_size, FLAGS.RNN_N,
                                        FLAGS.crop_size, FLAGS.crop_size, 3))
             S_targets_frames.set_shape(
