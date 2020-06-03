@@ -1,12 +1,11 @@
-import tensorflow as tf
-from lib.ops import *
-
-import cv2 as cv
-import collections
 import os
+import collections
+import cv2 as cv
 import numpy as np
 from scipy import signal
 
+import tensorflow as tf
+from lib.ops import *
 
 # The inference data loader.
 # should be a png sequence
@@ -65,7 +64,7 @@ def loadHR_batch(FLAGS, tar_size):
             raise ValueError('Video input directory not found')
 
         image_set_lists = []
-        with tf.variable_scope('load_frame'):
+        with tf.compat.v1.variable_scope('load_frame'):
             for dir_i in range(FLAGS.str_dir, FLAGS.end_dir + 1):
                 inputDir = os.path.join(
                     FLAGS.input_video_dir,
@@ -117,9 +116,9 @@ def loadHR_batch(FLAGS, tar_size):
                 print('[Config] Use random crop')
                 # a k_w_border margin is in tar_size for gaussian blur
                 # have to use the same crop because crop_to_bounding_box only accept one value
-                offset_w = tf.cast(tf.floor(tf.random_uniform([], 0, \
+                offset_w = tf.cast(tf.floor(tf.random.uniform([], 0, \
                     tf.cast(HR_shape[-2], tf.float32) - tar_size)), dtype=tf.int32)
-                offset_h = tf.cast(tf.floor(tf.random_uniform([], 0, \
+                offset_h = tf.cast(tf.floor(tf.random.uniform([], 0, \
                     tf.cast(HR_shape[-3], tf.float32) - tar_size)), dtype=tf.int32)
             else:
                 raise Exception(
@@ -131,7 +130,7 @@ def loadHR_batch(FLAGS, tar_size):
                 # our data augmentation, moving first frame to mimic camera motion
                 # random motions, one slice use the same motion
                 offset_xy = tf.cast(tf.floor(
-                    tf.random_uniform([FLAGS.RNN_N, 2], -3.5, 4.5)),
+                    tf.random.uniform([FLAGS.RNN_N, 2], -3.5, 4.5)),
                                     dtype=tf.int32)
                 # [FLAGS.RNN_N , 2], relative positions
                 pos_xy = tf.cumsum(offset_xy, axis=0, exclusive=True)
@@ -140,7 +139,7 @@ def loadHR_batch(FLAGS, tar_size):
                 range_pos = tf.reduce_max(
                     pos_xy, axis=0) - min_pos  # [ shrink x, shrink y ]
                 lefttop_pos = pos_xy - min_pos  # crop point
-                moving_decision = tf.random_uniform([sequence_length],
+                moving_decision = tf.random.uniform([sequence_length],
                                                     0,
                                                     1,
                                                     dtype=tf.float32)
@@ -152,7 +151,7 @@ def loadHR_batch(FLAGS, tar_size):
             if FLAGS.flip and (FLAGS.mode == 'train'):
                 print('[Config] Use random flip')
                 # Produce the decision of random flip
-                flip_decision = tf.random_uniform([sequence_length],
+                flip_decision = tf.random.uniform([sequence_length],
                                                   0,
                                                   1,
                                                   dtype=tf.float32)
@@ -252,7 +251,7 @@ def loadHR(FLAGS, tar_size):
             tf.convert_to_tensor(_, dtype=tf.string) for _ in image_list_HR_r
         ]
 
-        with tf.variable_scope('load_frame'):
+        with tf.compat.v1.variable_scope('load_frame'):
             # define the image list queue
             output = tf.train.slice_input_producer(image_list_HR_r, shuffle=False,\
                 capacity=int(FLAGS.name_video_queue_capacity))
@@ -263,7 +262,7 @@ def loadHR(FLAGS, tar_size):
             if FLAGS.movingFirstFrame and FLAGS.mode == 'train':  # our data augmentation, moving first frame to mimic camera motion
                 print('[Config] Use random crop')
                 offset_xy = tf.cast(tf.floor(
-                    tf.random_uniform([FLAGS.RNN_N, 2], -3.5, 4.5)),
+                    tf.random.uniform([FLAGS.RNN_N, 2], -3.5, 4.5)),
                                     dtype=tf.int32)
                 # [FLAGS.RNN_N , 2], shifts
                 pos_xy = tf.cumsum(offset_xy, axis=0,
@@ -272,11 +271,11 @@ def loadHR(FLAGS, tar_size):
                 range_pos = tf.reduce_max(
                     pos_xy, axis=0) - min_pos  # [ shrink x, shrink y ]
                 lefttop_pos = pos_xy - min_pos  # crop point
-                moving_decision = tf.random_uniform([], 0, 1, dtype=tf.float32)
+                moving_decision = tf.random.uniform([], 0, 1, dtype=tf.float32)
 
             for fi in range(FLAGS.RNN_N):
                 HR_data = tf.image.convert_image_dtype(tf.image.decode_png(
-                    tf.read_file(output[fi]), channels=3),
+                    tf.io.read_file(output[fi]), channels=3),
                                                        dtype=tf.float32)
                 if FLAGS.movingFirstFrame:
                     if fi == 0:
@@ -307,9 +306,9 @@ def loadHR(FLAGS, tar_size):
                     print('[Config] Use random crop')
                     target_size = tf.shape(target_images[0])
 
-                    offset_w = tf.cast(tf.floor(tf.random_uniform([], 0, \
+                    offset_w = tf.cast(tf.floor(tf.random.uniform([], 0, \
                         tf.cast(target_size[1], tf.float32) - tar_size)), dtype=tf.int32)
-                    offset_h = tf.cast(tf.floor(tf.random_uniform([], 0, \
+                    offset_h = tf.cast(tf.floor(tf.random.uniform([], 0, \
                         tf.cast(target_size[0], tf.float32) - tar_size)), dtype=tf.int32)
 
                     for frame_t in range(FLAGS.RNN_N):
@@ -320,12 +319,12 @@ def loadHR(FLAGS, tar_size):
                 else:
                     raise Exception('Not implemented')
 
-            with tf.variable_scope('random_flip'):
+            with tf.compat.v1.variable_scope('random_flip'):
                 # Check for random flip:
                 if (FLAGS.flip is True) and (FLAGS.mode == 'train'):
                     print('[Config] Use random flip')
                     # Produce the decision of random flip
-                    flip_decision = tf.random_uniform([],
+                    flip_decision = tf.random.uniform([],
                                                       0,
                                                       1,
                                                       dtype=tf.float32)

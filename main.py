@@ -7,10 +7,9 @@ import shutil
 import subprocess
 
 import numpy as np
-import tensorflow as tf
-
-from tensorflow.python.util import deprecation
 import random as rn
+import tensorflow as tf
+from tensorflow.python.util import deprecation
 
 from absl import flags
 
@@ -18,7 +17,6 @@ from lib.ops import *
 from lib.dataloader import inference_data_loader, frvsr_gpu_data_loader
 from lib.frvsr import generator_F, fnet
 from lib.Teco import FRVSR, TecoGAN
-
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -222,7 +220,6 @@ flags.DEFINE_boolean(
     'D_LAYERLOSS', True,
     'Whether use layer loss from D')
 
-# FLAGS = flags.FLAGS
 FLAGS(sys.argv)
 
 # Set CUDA devices correctly if you use multiple gpu system
@@ -439,7 +436,7 @@ elif FLAGS.mode == 'train':
         shutil.copyfile('./' + filename,
                         FLAGS.summary_dir + filename.replace("/", "_"))
 
-    useValidat = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool),
+    useValidat = tf.compat.v1.placeholder_with_default(tf.constant(False, dtype=tf.bool),
                                              shape=())
     rdata = frvsr_gpu_data_loader(FLAGS, useValidat)
     # Data = collections.namedtuple('Data', 'paths_HR, s_inputs, s_targets, image_count, steps_per_epoch')
@@ -453,23 +450,23 @@ elif FLAGS.mode == 'train':
     #                                     'update_list_name, update_list_avg, image_summary')
 
     # Add scalar summary
-    tf.summary.scalar('learning_rate', Net.learning_rate)
+    tf.compat.v1.summary.scalar('learning_rate', Net.learning_rate)
     train_summary = []
     for key, value in zip(Net.update_list_name, Net.update_list_avg):
         # 'map_loss, scale_loss, FrameA_loss, FrameA_loss,...'
-        train_summary += [tf.summary.scalar(key, value)]
+        train_summary += [tf.compat.v1.summary.scalar(key, value)]
     train_summary += Net.image_summary
-    merged = tf.summary.merge(train_summary)
+    merged = tf.compat.v1.summary.merge(train_summary)
 
     validat_summary = []  # val data statistics is not added to average
     uplen = len(Net.update_list)
     for key, value in zip(Net.update_list_name[:uplen], Net.update_list):
         # 'map_loss, scale_loss, FrameA_loss, FrameA_loss,...'
-        validat_summary += [tf.summary.scalar("val_" + key, value)]
-    val_merged = tf.summary.merge(validat_summary)
+        validat_summary += [tf.compat.v1.summary.scalar("val_" + key, value)]
+    val_merged = tf.compat.v1.summary.merge(validat_summary)
 
     # Define the saver and weight initiallizer
-    saver = tf.train.Saver(max_to_keep=50)
+    saver = tf.compat.v1.train.Saver(max_to_keep=50)
     # variable lists
     all_var_list = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES)
     tfflag = tf.compat.v1.GraphKeys.MODEL_VARIABLES  #tf.GraphKeys.TRAINABLE_VARIABLES
@@ -498,7 +495,7 @@ elif FLAGS.mode == 'train':
     if FLAGS.vgg_scaling > 0.0:  # VGG weights are not trainable
         vgg_var_list = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
                                          scope='vgg_19')
-        vgg_restore = tf.train.Saver(vgg_var_list)
+        vgg_restore = tf.compat.v1.train.Saver(vgg_var_list)
 
     print('Finish building the network.')
 
@@ -506,10 +503,10 @@ elif FLAGS.mode == 'train':
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     # init_op = tf.initialize_all_variables() # MonitoredTrainingSession will initialize automatically
-    with tf.train.MonitoredTrainingSession(config=config,
+    with tf.compat.v1.train.MonitoredTrainingSession(config=config,
                                            save_summaries_secs=None,
                                            save_checkpoint_secs=None) as sess:
-        train_writer = tf.summary.FileWriter(FLAGS.summary_dir, sess.graph)
+        train_writer = tf.compat.v1.summary.FileWriter(FLAGS.summary_dir, sess.graph)
 
         printVariable('generator')
         printVariable('fnet')
