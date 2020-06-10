@@ -39,12 +39,7 @@ def discriminator_F(dis_inputs, FLAGS=None):
     def discriminator_block(inputs, output_channel, kernel_size, stride,
                             scope):
         with tf.compat.v1.variable_scope(scope):
-            net = conv2(inputs,
-                        kernel_size,
-                        output_channel,
-                        stride,
-                        use_bias=False,
-                        scope='conv1')
+            net = conv2(inputs, kernel_size, output_channel, stride, use_bias=False, scope='conv1')
             net = batchnorm(net, is_training=True)
             net = lrelu(net, 0.2)
 
@@ -164,10 +159,9 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
             cur_flow = gen_flow[:, frame_i, :, :, :]
             cur_flow.set_shape((FLAGS.batch_size, FLAGS.crop_size * 4,
                                 FLAGS.crop_size * 4, 2))
-            gen_pre_output_warp = tf.contrib.image.dense_image_warp(
-                gen_pre_output, cur_flow)
-            gen_warppre.append(
-                gen_pre_output_warp)  # warp frame [0,n-1] to frame [1,n]
+            gen_pre_output_warp = tf.contrib.image.dense_image_warp(gen_pre_output, cur_flow)
+            gen_warppre.append(gen_pre_output_warp) # warp frame [0,n-1] to frame [1,n]
+            
             gen_pre_output_warp = preprocessLR(deprocess(gen_pre_output_warp))
             # apply space-to-depth transform
             gen_pre_output_reshape = tf.reshape(
@@ -177,17 +171,14 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
                                                   perm=[0, 1, 3, 2, 4, 5])
             # batch,FLAGS.crop_size, FLAGS.crop_size, 4, 4, 3
             gen_pre_output_reshape = tf.reshape(
-                gen_pre_output_reshape, (FLAGS.batch_size, FLAGS.crop_size,
-                                         FLAGS.crop_size, 3 * 4 * 4))
+                gen_pre_output_reshape,
+                (FLAGS.batch_size, FLAGS.crop_size, FLAGS.crop_size, 3 * 4 * 4))
             # pack it as the recurrent input
             inputs = tf.concat(
                 (r_inputs[:, frame_i + 1, :, :, :], gen_pre_output_reshape),
                 axis=-1)
             # super-resolution part
-            gen_output = generator_F(inputs,
-                                     output_channel,
-                                     reuse=True,
-                                     FLAGS=FLAGS)
+            gen_output = generator_F(inputs, output_channel, reuse=True, FLAGS=FLAGS)
             gen_outputs.append(gen_output)
             gen_pre_output = gen_output
             gen_pre_output.set_shape((FLAGS.batch_size, FLAGS.crop_size * 4,
@@ -630,9 +621,11 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
             # tf.GraphKeys.UPDATE_OPS: batch normalization layer in discriminator should update first
             with tf.control_dependencies(
                     tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-                counter1 = tf.compat.v1.get_variable(dtype=tf.int32, shape=(), name='gen_train_with_D_counter',\
+                counter1 = tf.compat.v1.get_variable(dtype=tf.int32, shape=(),
+                    name='gen_train_with_D_counter',
                     initializer=tf.zeros_initializer())
-                counter2 = tf.compat.v1.get_variable(dtype=tf.int32, shape=(), name='gen_train_wo_D_counter',\
+                counter2 = tf.compat.v1.get_variable(dtype=tf.int32, shape=(),
+                    name='gen_train_wo_D_counter',
                     initializer=tf.zeros_initializer())
 
                 def train_gen_withD():

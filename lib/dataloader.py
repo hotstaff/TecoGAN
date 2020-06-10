@@ -2,7 +2,6 @@ import os
 import collections
 import cv2 as cv
 import numpy as np
-from scipy import signal
 
 import tensorflow as tf
 from lib.ops import *
@@ -12,10 +11,8 @@ from lib.ops import *
 def inference_data_loader(FLAGS):
     filedir = FLAGS.input_dir_LR
     downSP = False
-    if (FLAGS.input_dir_LR is None) or (not os.path.exists(
-            FLAGS.input_dir_LR)):
-        if (FLAGS.input_dir_HR is None) or (not os.path.exists(
-                FLAGS.input_dir_HR)):
+    if (FLAGS.input_dir_LR is None) or (not os.path.exists(FLAGS.input_dir_LR)):
+        if (FLAGS.input_dir_HR is None) or (not os.path.exists(FLAGS.input_dir_HR)):
             raise ValueError('Input directory not found')
         filedir = FLAGS.input_dir_HR
         downSP = True
@@ -302,7 +299,7 @@ def loadHR(FLAGS, tar_size):
 
             with tf.name_scope('random_crop'):
                 # Check whether perform crop
-                if (FLAGS.random_crop is True) and FLAGS.mode == 'train':
+                if (FLAGS.random_crop is True) and (FLAGS.mode == 'train'):
                     print('[Config] Use random crop')
                     target_size = tf.shape(target_images[0])
 

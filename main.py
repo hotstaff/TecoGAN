@@ -337,8 +337,8 @@ if FLAGS.mode == 'inference':
 
     # build the graph
     inputs_raw = tf.compat.v1.placeholder(tf.float32,
-                                shape=input_shape,
-                                name='inputs_raw')
+                                          shape=input_shape,
+                                          name='inputs_raw')
 
     pre_inputs = tf.Variable(tf.zeros(input_shape),
                              trainable=False,
@@ -371,9 +371,9 @@ if FLAGS.mode == 'inference':
 
     # In inference time, we only need to restore the weight of the generator
     var_list = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.MODEL_VARIABLES,
-                                 scope='generator')
+                                           scope='generator')
     var_list = var_list + tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.MODEL_VARIABLES,
-                                            scope='fnet')
+                                                      scope='fnet')
 
     weight_initiallizer = tf.compat.v1.train.Saver(var_list)
 
@@ -391,6 +391,7 @@ if FLAGS.mode == 'inference':
         os.makedirs(image_dir)
 
     with tf.compat.v1.Session(config=config) as sess:
+        # tf.summary.FileWriter('boardlog', graph=sess.graph)
         # Load the pretrained model
         sess.run(init_op)
         sess.run(local_init_op)
@@ -439,7 +440,10 @@ elif FLAGS.mode == 'train':
     useValidat = tf.compat.v1.placeholder_with_default(tf.constant(False, dtype=tf.bool),
                                              shape=())
     rdata = frvsr_gpu_data_loader(FLAGS, useValidat)
-    # Data = collections.namedtuple('Data', 'paths_HR, s_inputs, s_targets, image_count, steps_per_epoch')
+    '''
+    Data = collections.namedtuple('Data',
+                                  'paths_HR, s_inputs, s_targets, image_count, steps_per_epoch')
+    '''
     print('tData count = %d, steps per epoch %d' %
           (rdata.image_count, rdata.steps_per_epoch))
     if FLAGS.ratio > 0:
@@ -472,9 +476,9 @@ elif FLAGS.mode == 'train':
     tfflag = tf.compat.v1.GraphKeys.MODEL_VARIABLES  #tf.GraphKeys.TRAINABLE_VARIABLES
 
     if (FLAGS.checkpoint is not None) and (FLAGS.pre_trained_model is True):
-        model_var_list = tf.compat.v1.get_collection(
-            tfflag, scope='generator') + tf.compat.v1.get_collection(tfflag,
-                                                           scope='fnet')
+        model_var_list = (tf.compat.v1.get_collection(tfflag, scope='generator')
+                          + tf.compat.v1.get_collection(tfflag, scope='fnet'))
+
         assign_ops = get_existing_from_ckpt(FLAGS.checkpoint,
                                             model_var_list,
                                             rest_zero=True,
@@ -565,11 +569,11 @@ elif FLAGS.mode == 'train':
                     "learning_rate": Net.learning_rate
                 }
 
-                if (run_step % FLAGS.display_freq) == 0:
+                if run_step % FLAGS.display_freq == 0:
                     for key, value in zip(Net.update_list_name,
                                           Net.update_list_avg):
                         fetches[str(key)] = value
-                if (run_step % FLAGS.summary_freq) == 0:
+                if run_step % FLAGS.summary_freq == 0:
                     fetches["summary"] = merged
 
                 results = sess.run(fetches)
@@ -578,7 +582,7 @@ elif FLAGS.mode == 'train':
                         'Optimization starts!!!(Ctrl+C to stop, will try saving the last model...)'
                     )
 
-                if (run_step % FLAGS.summary_freq) == 0:
+                if run_step % FLAGS.summary_freq == 0:
                     print('Run and Recording summary!!')
                     train_writer.add_summary(results['summary'], run_step)
                     val_fetches = {}
@@ -593,7 +597,7 @@ elif FLAGS.mode == 'train':
                     for name in Net.update_list_name[:uplen]:
                         print('val_' + name, val_results['val_' + name])
 
-                if (run_step % FLAGS.display_freq) == 0:
+                if run_step % FLAGS.display_freq == 0:
                     train_epoch = math.ceil(run_step / rdata.steps_per_epoch)
                     train_step = (run_step - 1) % rdata.steps_per_epoch + 1
                     rate = (step + 1) * FLAGS.batch_size / (time.time() -
@@ -609,7 +613,7 @@ elif FLAGS.mode == 'train':
                     for name in Net.update_list_name:
                         print(name, results[name])
 
-                if (run_step % FLAGS.save_freq) == 0:
+                if run_step % FLAGS.save_freq == 0:
                     print('Save the checkpoint')
                     saver.save(save_sess,
                                os.path.join(FLAGS.output_dir, 'model'),

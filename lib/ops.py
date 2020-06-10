@@ -133,9 +133,9 @@ def prelu_tf(inputs, name='Prelu'):
                                  inputs.get_shape()[-1],
                                  initializer=tf.zeros_initializer(),
                                  collections=[
-                                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
-                                    tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
-                                    tf.compat.v1.GraphKeys.MODEL_VARIABLES],
+                                     tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+                                     tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
+                                     tf.compat.v1.GraphKeys.MODEL_VARIABLES],
                                  dtype=tf.float32)
     pos = tf.nn.relu(inputs)
     neg = alphas * (inputs - abs(inputs)) * 0.5
@@ -171,7 +171,7 @@ def denselayer(inputs, output_size):
         kernel_initializer=tf.contrib.layers.xavier_initializer())
     output = denseLayer.apply(inputs)
     tf.compat.v1.add_to_collection(name=tf.compat.v1.GraphKeys.MODEL_VARIABLES,
-                         value=denseLayer.kernel)
+                                   value=denseLayer.kernel)
     #output = tf.layers.dense(inputs, output_size, activation=None, kernel_initializer=tf.contrib.layers.xavier_initializer())
 
     return output
@@ -345,7 +345,7 @@ def copy_update_configuration(FLAGS, updateDict={}):
     valuelist = []
     for name, value in FLAGS.flag_values_dict().items():
         namelist += [name]
-        if (name in updateDict):
+        if name in updateDict:
             valuelist += [updateDict[name]]
         else:
             valuelist += [value]
@@ -386,15 +386,14 @@ def vgg_arg_scope(weight_decay=0.0005):
 
 
 # VGG19 net
-def vgg_19(
-        inputs,
-        num_classes=1000,  # no effect
-        is_training=False,  # no effect
-        dropout_keep_prob=0.5,  # no effect
-        spatial_squeeze=True,  # no effect
-        scope='vgg_19',
-        reuse=False,
-        fc_conv_padding='VALID'):
+def vgg_19(inputs,
+           num_classes=1000,  # no effect
+           is_training=False,  # no effect
+           dropout_keep_prob=0.5,  # no effect
+           spatial_squeeze=True,  # no effect
+           scope='vgg_19',
+           reuse=False,
+           fc_conv_padding='VALID'):
     """Changed from the Oxford Net VGG 19-Layers version E Example.
   Note: Only offer features from conv1 until relu54, classification part is removed
   Args:
@@ -420,45 +419,15 @@ def vgg_19(
         with slim.arg_scope(
             [slim.conv2d, slim.fully_connected, slim.max_pool2d],
                 outputs_collections=end_points_collection):
-            net = slim.repeat(inputs,
-                              2,
-                              slim.conv2d,
-                              64,
-                              3,
-                              scope='conv1',
-                              reuse=reuse)
+            net = slim.repeat(inputs, 2, slim.conv2d, 64, 3, scope='conv1', reuse=reuse)
             net = slim.max_pool2d(net, [2, 2], scope='pool1')
-            net = slim.repeat(net,
-                              2,
-                              slim.conv2d,
-                              128,
-                              3,
-                              scope='conv2',
-                              reuse=reuse)
+            net = slim.repeat(net, 2, slim.conv2d, 128, 3, scope='conv2', reuse=reuse)
             net = slim.max_pool2d(net, [2, 2], scope='pool2')
-            net = slim.repeat(net,
-                              4,
-                              slim.conv2d,
-                              256,
-                              3,
-                              scope='conv3',
-                              reuse=reuse)
+            net = slim.repeat(net, 4, slim.conv2d, 256, 3, scope='conv3', reuse=reuse)
             net = slim.max_pool2d(net, [2, 2], scope='pool3')
-            net = slim.repeat(net,
-                              4,
-                              slim.conv2d,
-                              512,
-                              3,
-                              scope='conv4',
-                              reuse=reuse)
+            net = slim.repeat(net, 4, slim.conv2d, 512, 3, scope='conv4', reuse=reuse)
             net = slim.max_pool2d(net, [2, 2], scope='pool4')
-            net = slim.repeat(net,
-                              4,
-                              slim.conv2d,
-                              512,
-                              3,
-                              scope='conv5',
-                              reuse=reuse)
+            net = slim.repeat(net, 4, slim.conv2d, 512, 3, scope='conv5', reuse=reuse)
             net = slim.max_pool2d(net, [2, 2], scope='pool5')
             # fully_connected layers are skipped here! because we only need the feature maps
             #     from the previous layers

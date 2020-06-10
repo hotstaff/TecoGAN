@@ -5,19 +5,9 @@ from lib.dataloader import *
 def fnet(fnet_input, reuse=False):
     def down_block(inputs, output_channel=64, stride=1, scope='down_block'):
         with tf.compat.v1.variable_scope(scope):
-            net = conv2(inputs,
-                        3,
-                        output_channel,
-                        stride,
-                        use_bias=True,
-                        scope='conv_1')
+            net = conv2(inputs, 3, output_channel, stride, use_bias=True, scope='conv_1')
             net = lrelu(net, 0.2)
-            net = conv2(net,
-                        3,
-                        output_channel,
-                        stride,
-                        use_bias=True,
-                        scope='conv_2')
+            net = conv2(net, 3, output_channel, stride, use_bias=True, scope='conv_2')
             net = lrelu(net, 0.2)
             net = maxpool(net)
 
@@ -25,19 +15,9 @@ def fnet(fnet_input, reuse=False):
 
     def up_block(inputs, output_channel=64, stride=1, scope='up_block'):
         with tf.compat.v1.variable_scope(scope):
-            net = conv2(inputs,
-                        3,
-                        output_channel,
-                        stride,
-                        use_bias=True,
-                        scope='conv_1')
+            net = conv2(inputs, 3, output_channel, stride, use_bias=True, scope='conv_1')
             net = lrelu(net, 0.2)
-            net = conv2(net,
-                        3,
-                        output_channel,
-                        stride,
-                        use_bias=True,
-                        scope='conv_2')
+            net = conv2(net, 3, output_channel, stride, use_bias=True, scope='conv_2')
             net = lrelu(net, 0.2)
             new_shape = tf.shape(net)[1:-1] * 2
             net = tf.image.resize(net, new_shape)
@@ -71,19 +51,9 @@ def generator_F(gen_inputs, gen_output_channels, reuse=False, FLAGS=None):
     # The Bx residual blocks
     def residual_block(inputs, output_channel=64, stride=1, scope='res_block'):
         with tf.compat.v1.variable_scope(scope):
-            net = conv2(inputs,
-                        3,
-                        output_channel,
-                        stride,
-                        use_bias=True,
-                        scope='conv_1')
+            net = conv2(inputs, 3, output_channel, stride, use_bias=True, scope='conv_1')
             net = tf.nn.relu(net)
-            net = conv2(net,
-                        3,
-                        output_channel,
-                        stride,
-                        use_bias=True,
-                        scope='conv_2')
+            net = conv2(net, 3, output_channel, stride, use_bias=True, scope='conv_2')
             net = net + inputs
 
         return net
