@@ -4,7 +4,12 @@ import cv2 as cv
 import numpy as np
 
 import tensorflow as tf
-from lib.ops import *
+from lib.ops import (preprocess, preprocessLR,
+                     random_flip,
+                     copy_update_configuration,
+                     tf_data_gaussDownby4,
+                     random_flip_batch)
+
 
 # The inference data loader.
 # should be a png sequence
@@ -198,11 +203,11 @@ def loadHR_batch(FLAGS, tar_size):
         print('Sequenced batches: {}, sequence length: {}'.format(
             num_image_list_HR_t_cur, FLAGS.RNN_N))
         batch_list = tf.train.shuffle_batch(output_names + target_images, enqueue_many=True,
-                        batch_size=int(FLAGS.batch_size),
-                        capacity=FLAGS.video_queue_capacity+FLAGS.video_queue_batch*sequence_length,
-                        min_after_dequeue=FLAGS.video_queue_capacity,
-                        num_threads=FLAGS.queue_thread,
-                        seed=FLAGS.rand_seed)
+                                            batch_size=int(FLAGS.batch_size),
+                                            capacity=FLAGS.video_queue_capacity+FLAGS.video_queue_batch*sequence_length,
+                                            min_after_dequeue=FLAGS.video_queue_capacity,
+                                            num_threads=FLAGS.queue_thread,
+                                            seed=FLAGS.rand_seed)
 
     return batch_list, num_image_list_HR_t_cur  # a k_w_border margin is in there for gaussian blur
 
@@ -335,9 +340,12 @@ def loadHR(FLAGS, tar_size):
         if FLAGS.mode == 'train':
             print('Sequenced batches: {}, sequence length: {}'.format(
                 num_image_list_HR_t_cur, FLAGS.RNN_N))
-            batch_list = tf.train.shuffle_batch(output_names + target_images,\
-                            batch_size=int(FLAGS.batch_size), capacity=FLAGS.video_queue_capacity+FLAGS.video_queue_batch*FLAGS.max_frm,
-                            min_after_dequeue=FLAGS.video_queue_capacity, num_threads=FLAGS.queue_thread, seed = FLAGS.rand_seed)
+            batch_list = tf.train.shuffle_batch(output_names + target_images,
+                                                batch_size=int(FLAGS.batch_size),
+                                                capacity=FLAGS.video_queue_capacity+FLAGS.video_queue_batch*FLAGS.max_frm,
+                                                min_after_dequeue=FLAGS.video_queue_capacity,
+                                                num_threads=FLAGS.queue_thread,
+                                                seed=FLAGS.rand_seed)
         else:
             raise Exception('Not implemented')
     return batch_list, num_image_list_HR_t_cur  # a k_w_border margin is still there for gaussian blur!!
@@ -371,7 +379,7 @@ def frvsr_gpu_data_loader(FLAGS, useValData_ph):
                     "video_queue_capacity": val_capacity,
                     "queue_thread": val_q_thread
                 })
-            vald_batch_list, vald_num_image_list_HR_t_cur = loadHRfunc(
+            vald_batch_list, _vald_num_image_list_HR_t_cur = loadHRfunc(
                 valFLAGS, tar_size)
 
     HR_images = list(batch_list[FLAGS.RNN_N::])  # batch high-res images

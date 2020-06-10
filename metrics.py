@@ -8,6 +8,9 @@ import LPIPSmodels.dist_model as dm
 from skimage.measure import compare_ssim
 
 from absl import flags
+
+from lib.ops import print_configuration_op
+
 flags.DEFINE_string('output', None, 'the path of output directory')
 flags.DEFINE_string('results', None, 'the list of paths of result directory')
 flags.DEFINE_string('targets', None, 'the list of paths of target directory')
@@ -18,18 +21,6 @@ FLAGS(sys.argv)
 if not os.path.exists(FLAGS.output):
     os.mkdir(FLAGS.output)
 
-
-# The operation used to print out the configuration
-def print_configuration_op(FLAGS):
-    print('[Configurations]:')
-    for name, value in FLAGS.flag_values_dict().items():
-        print('\t%s: %s' % (name, str(value)))
-    print('End of configuration')
-
-
-# custom Logger to write Log to file
-
-
 def listPNGinDir(dirpath):
     filelist = os.listdir(dirpath)
     filelist = [_ for _ in filelist if _.endswith(".png")]
@@ -37,8 +28,7 @@ def listPNGinDir(dirpath):
     filelist = sorted(filelist)
     filelist.sort(
         key=lambda f: int(''.join(list(filter(str.isdigit, f))) or -1))
-    result = [os.path.join(dirpath, _) for _ in filelist if _.endswith(".png")]
-    return result
+    return [os.path.join(dirpath, _) for _ in filelist if _.endswith(".png")]
 
 
 def _rgb2ycbcr(img, maxVal=255):

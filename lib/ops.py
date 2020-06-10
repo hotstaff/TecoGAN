@@ -2,11 +2,10 @@ import collections
 
 import numpy as np
 import cv2 as cv
-import scipy
 from scipy import signal
 
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+from tensorflow.contrib import slim
 from tensorflow.python.ops import summary_op_util as tpos
 from tensorflow.python.distribute import summary_op_util as tpds
 import keras
@@ -96,51 +95,51 @@ def conv2(batch_input,
                 biases_initializer=None)
 
 
-def conv2_NCHW(batch_input,
-               kernel=3,
-               output_channel=64,
-               stride=1,
-               use_bias=True,
-               scope='conv_NCHW'):
-    # Use NCWH to speed up the inference
-    # kernel: list of 2 integer specifying the width and height of the 2D convolution window
-    with tf.compat.v1.variable_scope(scope):
-        if use_bias:
-            return slim.conv2d(
-                batch_input,
-                output_channel, [kernel, kernel],
-                stride,
-                'SAME',
-                data_format='NCWH',
-                activation_fn=None,
-                weights_initializer=tf.contrib.layers.xavier_initializer())
-        else:
-            return slim.conv2d(
-                batch_input,
-                output_channel, [kernel, kernel],
-                stride,
-                'SAME',
-                data_format='NCWH',
-                activation_fn=None,
-                weights_initializer=tf.contrib.layers.xavier_initializer(),
-                biases_initializer=None)
+# def conv2_NCHW(batch_input,
+#                kernel=3,
+#                output_channel=64,
+#                stride=1,
+#                use_bias=True,
+#                scope='conv_NCHW'):
+#     # Use NCWH to speed up the inference
+#     # kernel: list of 2 integer specifying the width and height of the 2D convolution window
+#     with tf.compat.v1.variable_scope(scope):
+#         if use_bias:
+#             return slim.conv2d(
+#                 batch_input,
+#                 output_channel, [kernel, kernel],
+#                 stride,
+#                 'SAME',
+#                 data_format='NCWH',
+#                 activation_fn=None,
+#                 weights_initializer=tf.contrib.layers.xavier_initializer())
+#         else:
+#             return slim.conv2d(
+#                 batch_input,
+#                 output_channel, [kernel, kernel],
+#                 stride,
+#                 'SAME',
+#                 data_format='NCWH',
+#                 activation_fn=None,
+#                 weights_initializer=tf.contrib.layers.xavier_initializer(),
+#                 biases_initializer=None)
 
 
 # Define our tensorflow version PRelu
-def prelu_tf(inputs, name='Prelu'):
-    with tf.compat.v1.variable_scope(name):
-        alphas = tf.get_variable('alpha',
-                                 inputs.get_shape()[-1],
-                                 initializer=tf.zeros_initializer(),
-                                 collections=[
-                                     tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
-                                     tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
-                                     tf.compat.v1.GraphKeys.MODEL_VARIABLES],
-                                 dtype=tf.float32)
-    pos = tf.nn.relu(inputs)
-    neg = alphas * (inputs - abs(inputs)) * 0.5
+# def prelu_tf(inputs, name='Prelu'):
+#     with tf.compat.v1.variable_scope(name):
+#         alphas = tf.get_variable('alpha',
+#                                  inputs.get_shape()[-1],
+#                                  initializer=tf.zeros_initializer(),
+#                                  collections=[
+#                                      tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+#                                      tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
+#                                      tf.compat.v1.GraphKeys.MODEL_VARIABLES],
+#                                  dtype=tf.float32)
+#     pos = tf.nn.relu(inputs)
+#     neg = alphas * (inputs - abs(inputs)) * 0.5
 
-    return pos + neg
+#     return pos + neg
 
 
 # Define our Lrelu
@@ -178,28 +177,28 @@ def denselayer(inputs, output_size):
 
 
 # The implementation of PixelShuffler
-def pixelShuffler(inputs, scale=2):
-    size = tf.shape(inputs)
-    batch_size = size[0]
-    h = size[1]
-    w = size[2]
-    c = inputs.get_shape().as_list()[-1]
+# def pixelShuffler(inputs, scale=2):
+#     size = tf.shape(inputs)
+#     batch_size = size[0]
+#     h = size[1]
+#     w = size[2]
+#     c = inputs.get_shape().as_list()[-1]
 
-    # Get the target channel size
-    channel_target = c // (scale * scale)
-    channel_factor = c // channel_target
+#     # Get the target channel size
+#     channel_target = c // (scale * scale)
+#     channel_factor = c // channel_target
 
-    shape_1 = [
-        batch_size, h, w, channel_factor // scale, channel_factor // scale
-    ]
-    shape_2 = [batch_size, h * scale, w * scale, 1]
+#     shape_1 = [
+#         batch_size, h, w, channel_factor // scale, channel_factor // scale
+#     ]
+#     shape_2 = [batch_size, h * scale, w * scale, 1]
 
-    # Reshape and transpose for periodic shuffling for each channel
-    input_split = tf.split(inputs, channel_target, axis=3)
-    output = tf.concat(
-        [phaseShift(x, scale, shape_1, shape_2) for x in input_split], axis=3)
+#     # Reshape and transpose for periodic shuffling for each channel
+#     input_split = tf.split(inputs, channel_target, axis=3)
+#     output = tf.concat(
+#         [phaseShift(x, scale, shape_1, shape_2) for x in input_split], axis=3)
 
-    return output
+#     return output
 
 
 def upscale_four(inputs, scope='upscale_four'):
@@ -306,12 +305,12 @@ def bicubic_four(inputs, scope='bicubic_four'):
     return hi_res
 
 
-def phaseShift(inputs, scale, shape_1, shape_2):
-    # Tackle the condition when the batch is None
-    X = tf.reshape(inputs, shape_1)
-    X = tf.transpose(X, [0, 1, 3, 2, 4])
+# def phaseShift(inputs, scale, shape_1, shape_2):
+#     # Tackle the condition when the batch is None
+#     X = tf.reshape(inputs, shape_1)
+#     X = tf.transpose(X, [0, 1, 3, 2, 4])
 
-    return tf.reshape(X, shape_2)
+#     return tf.reshape(X, shape_2)
 
 
 # The random flip operation used for loading examples of one batch
@@ -355,34 +354,34 @@ def copy_update_configuration(FLAGS, updateDict={}):
     return tmpFLAGS
 
 
-def compute_psnr(ref, target):
-    ref = tf.cast(ref, tf.float32)
-    target = tf.cast(target, tf.float32)
-    diff = target - ref
-    sqr = tf.multiply(diff, diff)
-    err = tf.reduce_sum(sqr)
-    v = tf.shape(diff)[0] * tf.shape(diff)[1] * tf.shape(diff)[2] * tf.shape(
-        diff)[3]
-    mse = err / tf.cast(v, tf.float32)
-    psnr = 10. * (tf.log(255. * 255. / mse) / tf.log(10.))
+# def compute_psnr(ref, target):
+#     ref = tf.cast(ref, tf.float32)
+#     target = tf.cast(target, tf.float32)
+#     diff = target - ref
+#     sqr = tf.multiply(diff, diff)
+#     err = tf.reduce_sum(sqr)
+#     v = tf.shape(diff)[0] * tf.shape(diff)[1] * tf.shape(diff)[2] * tf.shape(
+#         diff)[3]
+#     mse = err / tf.cast(v, tf.float32)
+#     psnr = 10. * (tf.log(255. * 255. / mse) / tf.log(10.))
 
-    return psnr
+#     return psnr
 
 
 # VGG19 component
-def vgg_arg_scope(weight_decay=0.0005):
-    """Defines the VGG arg scope.
-  Args:
-    weight_decay: The l2 regularization coefficient.
-  Returns:
-    An arg_scope.
-  """
-    with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                        activation_fn=tf.nn.relu,
-                        weights_regularizer=slim.l2_regularizer(weight_decay),
-                        biases_initializer=tf.zeros_initializer()):
-        with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
-            return arg_sc
+# def vgg_arg_scope(weight_decay=0.0005):
+#     """Defines the VGG arg scope.
+#   Args:
+#     weight_decay: The l2 regularization coefficient.
+#   Returns:
+#     An arg_scope.
+#   """
+#     with slim.arg_scope([slim.conv2d, slim.fully_connected],
+#                         activation_fn=tf.nn.relu,
+#                         weights_regularizer=slim.l2_regularizer(weight_decay),
+#                         biases_initializer=tf.zeros_initializer()):
+#         with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
+#             return arg_sc
 
 
 # VGG19 net
@@ -448,7 +447,7 @@ def gaussian_2dkernel(size=5, sig=1.):
     """
     gkern1d = signal.gaussian(size, std=sig).reshape(size, 1)
     gkern2d = np.outer(gkern1d, gkern1d)
-    return (gkern2d / gkern2d.sum())
+    return gkern2d / gkern2d.sum()
 
 
 def tf_data_gaussDownby4(HRdata, sigma=1.5):

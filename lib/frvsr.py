@@ -1,4 +1,7 @@
-from lib.dataloader import *
+# from lib.dataloader import *
+import tensorflow as tf
+from lib.ops import (conv2, conv2_tran, lrelu, maxpool,
+                     bicubic_four, preprocess)
 
 
 # Definition of the fnet, more details can be found in TecoGAN paper

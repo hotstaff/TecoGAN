@@ -13,7 +13,8 @@ from tensorflow.python.util import deprecation
 
 from absl import flags
 
-from lib.ops import *
+from lib.ops import (deprocess, upscale_four, save_img,
+                     print_configuration_op, get_existing_from_ckpt)
 from lib.dataloader import inference_data_loader, frvsr_gpu_data_loader
 from lib.frvsr import generator_F, fnet
 from lib.Teco import FRVSR, TecoGAN
@@ -438,7 +439,7 @@ elif FLAGS.mode == 'train':
                         FLAGS.summary_dir + filename.replace("/", "_"))
 
     useValidat = tf.compat.v1.placeholder_with_default(tf.constant(False, dtype=tf.bool),
-                                             shape=())
+                                                       shape=())
     rdata = frvsr_gpu_data_loader(FLAGS, useValidat)
     '''
     Data = collections.namedtuple('Data',

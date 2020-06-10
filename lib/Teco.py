@@ -1,4 +1,9 @@
-from lib.frvsr import *
+import collections
+import tensorflow as tf
+from lib.frvsr import fnet, generator_F
+from lib.ops import (conv2, batchnorm, lrelu, denselayer, vgg_19,
+                     upscale_four, preprocessLR, deprocess,
+                     gif_summary)
 
 VGG_MEAN = [123.68, 116.78, 103.94]
 
@@ -100,10 +105,10 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
     with tf.compat.v1.variable_scope('get_learning_rate_and_global_step'):
         global_step = tf.compat.v1.train.get_or_create_global_step()
         learning_rate = tf.compat.v1.train.exponential_decay(FLAGS.learning_rate,
-                                                   global_step,
-                                                   FLAGS.decay_step,
-                                                   FLAGS.decay_rate,
-                                                   staircase=FLAGS.stair)
+                                                             global_step,
+                                                             FLAGS.decay_step,
+                                                             FLAGS.decay_rate,
+                                                             staircase=FLAGS.stair)
         incr_global_step = tf.compat.v1.assign(global_step, global_step + 1)
 
     # Build the generator part, fnet
@@ -161,7 +166,7 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
                                 FLAGS.crop_size * 4, 2))
             gen_pre_output_warp = tf.contrib.image.dense_image_warp(gen_pre_output, cur_flow)
             gen_warppre.append(gen_pre_output_warp) # warp frame [0,n-1] to frame [1,n]
-            
+
             gen_pre_output_warp = preprocessLR(deprocess(gen_pre_output_warp))
             # apply space-to-depth transform
             gen_pre_output_reshape = tf.reshape(
@@ -212,7 +217,7 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
     update_list_name = []  # collect all the names of the losses
 
     if FLAGS.vgg_scaling > 0.0:
-        with tf.name_scope('vgg_19') as scope:
+        with tf.name_scope('vgg_19'):
             vgg_layer_labels = [
                 'vgg_19/conv2/conv2_2', 'vgg_19/conv3/conv3_4',
                 'vgg_19/conv4/conv4_4', 'vgg_19/conv5/conv5_4'
@@ -301,7 +306,7 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
             real_warp0 = tf.contrib.image.dense_image_warp(t_targets, T_vel)
             # batch*t_size, h=FLAGS.crop_size*4, w=FLAGS.crop_size*4, 3
             with tf.device('/gpu:0'), tf.compat.v1.variable_scope('tdiscriminator',
-                                                        reuse=False):
+                                                                  reuse=False):
                 real_warp = tf.reshape(
                     real_warp0,
                     (t_batch, 3, FLAGS.crop_size * 4, FLAGS.crop_size * 4,
@@ -336,8 +341,8 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
                             (t_batch, FLAGS.crop_size * 4, FLAGS.crop_size * 4,
                              3 * 3))  # [b,h,w,9=RRRGGGBBB]
 
-                        t_input = tf.reshape(r_inputs[:,:t_size,:,:,:], \
-                            (t_batch, 3, FLAGS.crop_size, FLAGS.crop_size, -1) )
+                        t_input = tf.reshape(r_inputs[:, :t_size, :, :, :],
+                                             (t_batch, 3, FLAGS.crop_size, FLAGS.crop_size, -1))
                         t_input = tf.transpose(
                             t_input, perm=[0, 2, 3, 4,
                                            1])  # [tb,h//4,w//4,3RGB,3T]
@@ -353,8 +358,7 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
                             (before_warp, real_warp, input_hi),
                             axis=-1)  # [tb,h,w,9 + 9 + 9]
 
-                    tdiscrim_real_output, real_layers = discriminator_F(
-                        real_warp, FLAGS=FLAGS)
+                    tdiscrim_real_output, real_layers = discriminator_F(real_warp, FLAGS=FLAGS)
 
                 else:  # an unconditional Dt
                     tdiscrim_real_output = discriminator_F(
@@ -579,8 +583,8 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
                 tdis_learning_rate = tdis_learning_rate * 0.3
 
             tdiscrim_optimizer = tf.compat.v1.train.AdamOptimizer(tdis_learning_rate,
-                                                        beta1=FLAGS.beta,
-                                                        epsilon=FLAGS.adameps)
+                                                                  beta1=FLAGS.beta,
+                                                                  epsilon=FLAGS.adameps)
             tdiscrim_grads_and_vars = tdiscrim_optimizer.compute_gradients(
                 discrim_loss, tdiscrim_tvars)
             # https://github.com/tensorflow/tensorflow/issues/3287
@@ -602,9 +606,9 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
                                                           beta1=FLAGS.beta,
                                                           epsilon=FLAGS.adameps)
         gen_tvars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
-                                      scope='generator')
+                                                scope='generator')
         fnet_tvars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
-                                       scope='fnet')
+                                                 scope='fnet')
         fnet_loss = FLAGS.warp_scaling * warp_loss + gen_loss
 
         if not GAN_Flag:
@@ -621,12 +625,13 @@ def TecoGAN(r_inputs, r_targets, FLAGS, GAN_Flag=True):
             # tf.GraphKeys.UPDATE_OPS: batch normalization layer in discriminator should update first
             with tf.control_dependencies(
                     tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-                counter1 = tf.compat.v1.get_variable(dtype=tf.int32, shape=(),
-                    name='gen_train_with_D_counter',
-                    initializer=tf.zeros_initializer())
+                counter1 = tf.compat.v1.get_variable(dtype=tf.int32,
+                                                     shape=(),
+                                                     name='gen_train_with_D_counter',
+                                                     initializer=tf.zeros_initializer())
                 counter2 = tf.compat.v1.get_variable(dtype=tf.int32, shape=(),
-                    name='gen_train_wo_D_counter',
-                    initializer=tf.zeros_initializer())
+                                                     name='gen_train_wo_D_counter',
+                                                     initializer=tf.zeros_initializer())
 
                 def train_gen_withD():
                     ''' train generator with discriminator '''
